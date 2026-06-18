@@ -12,6 +12,7 @@ let state = {
 const elements = {
     refreshBtn: document.getElementById('refresh-btn'),
     refreshIcon: document.getElementById('refresh-icon'),
+    exportCsvBtn: document.getElementById('export-csv-btn'),
     statusBadge: document.getElementById('status-badge'),
     totalCount: document.getElementById('total-count'),
     lastUpdatedTime: document.getElementById('last-updated-time'),
@@ -82,6 +83,9 @@ function setupEventListeners() {
     // Refresh & Retry
     elements.refreshBtn.addEventListener('click', () => fetchReleaseNotes());
     elements.retryBtn.addEventListener('click', () => fetchReleaseNotes());
+
+    // Export CSV
+    elements.exportCsvBtn.addEventListener('click', exportToCSV);
 
     // Search
     elements.searchInput.addEventListener('input', (e) => {
@@ -221,8 +225,8 @@ function normalizeType(type) {
     return 'update';
 }
 
-// Apply Active Filters and Search Query
-function applyFiltersAndSearch() {
+// Get currently active/filtered list of updates
+function getFilteredUpdates() {
     let filtered = state.updates;
 
     // Filter
@@ -240,6 +244,12 @@ function applyFiltersAndSearch() {
         });
     }
 
+    return filtered;
+}
+
+// Apply Active Filters and Search Query
+function applyFiltersAndSearch() {
+    const filtered = getFilteredUpdates();
     renderUpdates(filtered);
 }
 
@@ -592,4 +602,44 @@ function removeToast(toast) {
     toast.addEventListener('transitionend', () => {
         toast.remove();
     });
+}
+
+// Export the currently filtered release notes to a CSV file
+function exportToCSV() {
+    const filtered = getFilteredUpdates();
+    if (filtered.length === 0) {
+        showToast('Export Failed', 'No release notes available to export.', 'error');
+        return;
+    }
+
+    const headers = ['Date', 'Type', 'Description', 'Link'];
+    
+    const rows = filtered.map(u => [
+        u.date,
+        u.type,
+        stripHtml(u.content),
+        u.link
+    ]);
+
+    const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(val => `"${val.replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    try {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `bigquery_release_notes_${new Date().toISOString().slice(0, 10)}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('Export Complete', `Exported ${filtered.length} items to CSV file.`, 'success');
+    } catch (err) {
+        console.error('CSV Export Error: ', err);
+        showToast('Export Failed', 'An error occurred while generating the CSV.', 'error');
+    }
 }
