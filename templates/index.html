@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" type="image/png" href="https://www.gstatic.com/devrel-devsite/prod/v5cbd3cb32d4399e5256565103ec6f7ef5eb46115998a1a1f33f00bb09d4352fdb/cloud/images/favicons/onecloud/favicon-32x32.png">
+</head>
+<body>
+    <div class="glass-bg"></div>
+    <div class="glow-orb" id="orb-1"></div>
+    <div class="glow-orb" id="orb-2"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="brand">
+                <div class="logo-wrapper">
+                    <i class="fa-solid fa-database logo-icon"></i>
+                    <div class="logo-ripple"></div>
+                </div>
+                <div class="brand-text">
+                    <h1>BigQuery</h1>
+                    <p class="subtitle">Release Notes Dashboard</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <span class="status-indicator online" id="status-badge">
+                    <span class="dot"></span>
+                    <span class="status-text">Connected</span>
+                </span>
+                <button id="refresh-btn" class="btn btn-primary" title="Refresh Release Notes">
+                    <i class="fa-solid fa-arrows-rotate btn-icon" id="refresh-icon"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats & Info Ribbon -->
+        <section class="info-ribbon">
+            <div class="ribbon-card">
+                <i class="fa-solid fa-list-check ribbon-icon"></i>
+                <div class="ribbon-data">
+                    <span class="ribbon-label">Total Updates</span>
+                    <span class="ribbon-val" id="total-count">-</span>
+                </div>
+            </div>
+            <div class="ribbon-card">
+                <i class="fa-solid fa-clock ribbon-icon"></i>
+                <div class="ribbon-data">
+                    <span class="ribbon-label">Last Checked</span>
+                    <span class="ribbon-val" id="last-updated-time">-</span>
+                </div>
+            </div>
+            <div class="ribbon-card">
+                <i class="fa-brands fa-x-twitter ribbon-icon text-twitter"></i>
+                <div class="ribbon-data">
+                    <span class="ribbon-label">Selected to Share</span>
+                    <span class="ribbon-val" id="selected-count">0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search & Filter Controls -->
+        <section class="controls-panel">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search updates, keywords, or features..." autocomplete="off">
+                <button id="search-clear" class="search-clear-btn" style="display: none;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="filter-group">
+                <span class="filter-label">Filter by type:</span>
+                <div class="filter-pills">
+                    <button class="pill active" data-type="all">All</button>
+                    <button class="pill" data-type="feature"><span class="pill-dot feature"></span>Feature</button>
+                    <button class="pill" data-type="announcement"><span class="pill-dot announcement"></span>Announcement</button>
+                    <button class="pill" data-type="issue"><span class="pill-dot issue"></span>Issue</button>
+                    <button class="pill" data-type="deprecation"><span class="pill-dot deprecation"></span>Deprecation</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Feed Area -->
+        <main class="feed-container">
+            <!-- Spinner / Loader -->
+            <div id="loader" class="loader-wrapper">
+                <div class="spinner">
+                    <div class="double-bounce1"></div>
+                    <div class="double-bounce2"></div>
+                </div>
+                <p>Fetching latest BigQuery release notes...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state-wrapper" style="display: none;">
+                <i class="fa-regular fa-folder-open empty-icon"></i>
+                <h3>No updates found</h3>
+                <p>Try refining your search terms or filters.</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="error-state" class="error-state-wrapper" style="display: none;">
+                <i class="fa-solid fa-triangle-exclamation error-icon"></i>
+                <h3>Failed to load release notes</h3>
+                <p id="error-message">Unknown error occurred</p>
+                <button id="retry-btn" class="btn btn-secondary">
+                    <i class="fa-solid fa-rotate-right"></i> Retry
+                </button>
+            </div>
+
+            <!-- Notes List -->
+            <div id="feed-list" class="feed-list" style="display: none;">
+                <!-- Feed cards will be injected here dynamically -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Floating Selection Action Bar -->
+    <div id="floating-bar" class="floating-bar">
+        <div class="floating-bar-content">
+            <div class="selection-info">
+                <span class="selection-badge" id="floating-badge">0</span>
+                <span class="selection-text">updates selected for sharing</span>
+            </div>
+            <div class="floating-bar-actions">
+                <button id="clear-selection-btn" class="btn btn-tertiary">
+                    <i class="fa-solid fa-trash-can"></i> Clear
+                </button>
+                <button id="tweet-selected-btn" class="btn btn-twitter-pill">
+                    <i class="fa-brands fa-x-twitter"></i> Compose Tweet
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Twitter Composer Modal -->
+    <div id="tweet-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-brands fa-x-twitter"></i> Compose X / Twitter Post</h3>
+                <button id="modal-close" class="modal-close-btn">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="composer-container">
+                    <textarea id="tweet-textarea" placeholder="What's happening?" rows="8" maxlength="500"></textarea>
+                    
+                    <div class="character-progress-wrapper">
+                        <div class="char-count-info">
+                            <span id="char-count">0</span> / <span id="char-limit">280</span> characters
+                        </div>
+                        <div class="progress-bar-container">
+                            <div id="char-progress" class="progress-bar-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-warning" id="tweet-warning-msg" style="display: none;">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span>Your text exceeds 280 characters. Users without premium might see it truncated. Consider editing.</span>
+                </div>
+
+                <div class="tweet-preview-section">
+                    <span class="preview-label">Generated Preview Format:</span>
+                    <div class="preview-card">
+                        <div class="preview-header">
+                            <img src="https://www.gstatic.com/devrel-devsite/prod/v5cbd3cb32d4399e5256565103ec6f7ef5eb46115998a1a1f33f00bb09d4352fdb/cloud/images/favicons/onecloud/favicon-32x32.png" alt="BigQuery" class="preview-avatar">
+                            <div class="preview-meta">
+                                <span class="preview-name">BigQuery Updates</span>
+                                <span class="preview-handle">@BigQueryNotes</span>
+                            </div>
+                        </div>
+                        <div id="tweet-preview-text" class="preview-content"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="tweet-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="tweet-submit" class="btn btn-twitter">
+                    <i class="fa-brands fa-x-twitter"></i> Share to X
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- JS Logic -->
+    <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>
